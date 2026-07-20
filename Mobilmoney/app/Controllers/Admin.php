@@ -49,12 +49,6 @@ class Admin extends BaseController
         return redirect()->to(base_url('admin/frais'));
     }
 
-    public function gains()
-    {
-        $data['gains'] = $this->operationModel->getSituationGains();
-        return view('admin/gains', $data);
-    }
-
     public function comptes()
     {
         $clients = $this->clientModel->getAllClients();
@@ -132,5 +126,30 @@ class Admin extends BaseController
             session()->setFlashdata('success', 'Commissions mises à jour avec succès.');
         }
         return redirect()->to(site_url('admin/commissions'));
+    }
+
+    public function gains()
+    {
+        $operationModel = new OperationModel();
+
+        $data = [
+            'title' => 'Situation des gains',
+            'gains_internes' => $operationModel->getGainsInternes(),
+            'gains_externes' => $operationModel->getGainsExternesGroupes(),
+        ];
+
+        return view('admin/gains', $data);
+    }
+
+    public function reversements()
+    {
+        $operationModel = new OperationModel();
+
+        $data = [
+            'title' => 'Situation des montants à envoyer',
+            'reversements' => $operationModel->getMontantsAEnvoyer(),
+        ];
+
+        return view('admin/reversements', $data);
     }
 }

@@ -15,6 +15,7 @@ $routes->group('admin', function ($routes) {
     $routes->get('frais', 'Admin::frais');
     $routes->post('updateFrais', 'Admin::updateFrais');
     $routes->get('gains', 'Admin::gains');
+    $routes->get('reversements', 'Admin::reversements');
     $routes->get('comptes', 'Admin::comptes');
     $routes->get('commissions', 'Admin::commissions');
     $routes->post('updateCommissions', 'Admin::updateCommissions');

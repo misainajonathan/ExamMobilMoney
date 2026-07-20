@@ -1,52 +1,43 @@
 <?= $this->extend('layout/admin') ?>
 
 <?= $this->section('content') ?>
-<div class="container-fluid py-4">
-    <h2 class="h4 mb-4 fw-bold text-dark">Situation des Gains Opérateur</h2>
-
-    <div class="row g-4 mb-4">
-        <!-- Gains Retraits -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card border-0 shadow-sm p-4 bg-white">
-                <div class="d-flex align-items-center">
-                    <div class="flex-shrink-0 bg-danger bg-opacity-10 text-danger p-3 rounded">
-                        <i class="bi bi-box-arrow-down-left fs-4"></i>
-                    </div>
-                    <div class="ms-3">
-                        <p class="text-muted small mb-1 uppercase tracking-wider">Gains sur Retraits</p>
-                        <h3 class="fw-bold mb-0 text-dark"><?= number_format($gains['retrait'], 2, '.', ' ') ?> Ar</h3>
-                    </div>
-                </div>
+<div class="row g-4">
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm border-success">
+            <div class="card-body p-4 text-center">
+                <p class="text-muted mb-1">Gains Opérateur Interne</p>
+                <h1 class="display-5 fw-bold text-success"><?= number_format($gains_internes, 2, ',', ' ') ?> Ar</h1>
+                <small class="text-muted">Total des frais (Dépôts, Retraits, Transferts nationaux)</small>
             </div>
         </div>
+    </div>
 
-        <!-- Gains Transferts -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card border-0 shadow-sm p-4 bg-white">
-                <div class="d-flex align-items-center">
-                    <div class="flex-shrink-0 bg-success bg-opacity-10 text-success p-3 rounded">
-                        <i class="bi bi-arrow-left-right fs-4"></i>
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Gains via les autres opérateurs</h2>
+                <?php if ($gains_externes === []): ?>
+                    <p class="text-muted mb-0">Aucun gain généré via les autres opérateurs pour le moment.</p>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Opérateur</th>
+                                    <th class="text-end">Frais Collectés</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($gains_externes as $g): ?>
+                                    <tr>
+                                        <td class="fw-bold"><?= htmlspecialchars((string) $g['operateur_destination'], ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="text-end text-primary fw-bold"><?= number_format((float) $g['total'], 2, ',', ' ') ?> Ar</td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="ms-3">
-                        <p class="text-muted small mb-1 uppercase tracking-wider">Gains sur Transferts</p>
-                        <h3 class="fw-bold mb-0 text-dark"><?= number_format($gains['transfert'], 2, '.', ' ') ?> Ar</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Chiffre d'Affaires -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card border-0 shadow-sm p-4 bg-primary text-white">
-                <div class="d-flex align-items-center">
-                    <div class="flex-shrink-0 bg-white bg-opacity-20 text-white p-3 rounded">
-                        <i class="bi bi-currency-exchange fs-4"></i>
-                    </div>
-                    <div class="ms-3">
-                        <p class="text-white bg-opacity-70 small mb-1 uppercase tracking-wider">Total des Gains</p>
-                        <h3 class="fw-bold mb-0"><?= number_format($gains['total'], 2, '.', ' ') ?> Ar</h3>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
