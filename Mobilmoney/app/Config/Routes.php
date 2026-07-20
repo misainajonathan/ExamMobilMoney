@@ -16,6 +16,8 @@ $routes->group('admin', function ($routes) {
     $routes->post('updateFrais', 'Admin::updateFrais');
     $routes->get('gains', 'Admin::gains');
     $routes->get('comptes', 'Admin::comptes');
+    $routes->get('commissions', 'Admin::commissions');
+    $routes->post('updateCommissions', 'Admin::updateCommissions');
 });
 
 $routes->add('login', 'Auth::login');

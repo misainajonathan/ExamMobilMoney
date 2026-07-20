@@ -1,69 +1,83 @@
 <?= $this->extend('layout/admin') ?>
 
 <?= $this->section('content') ?>
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 mb-0 fw-bold text-dark">Gestion des Préfixes</h2>
-        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPrefixModal">
-            <i class="bi bi-plus-lg me-1"></i> Ajouter un préfixe
-        </button>
-    </div>
-
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0 bg-white">
-                <thead class="bg-light text-muted uppercase small">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Préfixe</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($prefixes)): ?>
-                        <?php foreach ($prefixes as $p): ?>
-                            <tr>
-                                <td class="ps-4 text-muted"><?= $p['id'] ?></td>
-                                <td><span class="badge bg-secondary px-2.5 py-1.5 fs-6"><?= $p['prefixe'] ?></span></td>
-                                <td class="text-end pe-4">
-                                    <a href="<?= base_url('admin/deletePrefix/' . $p['id']) ?>" class="btn btn-sm btn-outline-danger border-0" onclick="return confirm('Supprimer ce préfixe ?');">
-                                        <i class="bi bi-trash"></i> Supprimer
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">Aucun préfixe configuré.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ajout -->
-<div class="modal fade" id="addPrefixModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-bottom-0">
-                <h5 class="modal-title fw-bold">Nouveau préfixe</h5>
-                <button type="button" class="btn-close" data-bs-close="modal" aria-label="Close"></button>
-            </div>
-            <form action="<?= base_url('admin/addPrefix') ?>" method="post">
-                <div class="modal-body">
+<div class="row g-4">
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Ajouter un préfixe</h2>
+                <form action="<?= site_url('admin/addPrefix') ?>" method="post">
                     <div class="mb-3">
-                        <label for="prefixe" class="form-label text-muted small">Code préfixe (ex: 033)</label>
-                        <input type="text" class="form-control" id="prefixe" name="prefixe" placeholder="Ex: 034" required maxlength="3" minlength="3">
+                        <label class="form-label">Valeur du préfixe</label>
+                        <input type="text" name="valeur" class="form-control" placeholder="Ex: 032" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type d'opérateur</label>
+                        <select name="est_externe" id="est_externe" class="form-select" onchange="toggleNomOperateur()">
+                            <option value="0">Interne (Propre opérateur)</option>
+                            <option value="1">Externe (Autre opérateur)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="group_nom_operateur" style="display:none;">
+                        <label class="form-label">Nom de l'opérateur externe</label>
+                        <input type="text" name="nom_operateur" id="nom_operateur" class="form-control" placeholder="Ex: Orange">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Liste des préfixes configurés</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Préfixe</th>
+                                <th>Type</th>
+                                <th>Nom Opérateur</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($prefixes as $p): ?>
+                                <tr>
+                                    <td class="fw-bold"><?= htmlspecialchars((string) $p['valeur'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <span class="badge bg-<?= $p['est_externe'] ? 'warning' : 'success' ?>">
+                                            <?= $p['est_externe'] ? 'Externe' : 'Interne' ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars((string) $p['nom_operateur'], ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="text-end">
+                                        <a href="<?= site_url('admin/deletePrefix/' . $p['id']) ?>" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ce préfixe ?')">Supprimer</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+function toggleNomOperateur() {
+    var select = document.getElementById('est_externe');
+    var group = document.getElementById('group_nom_operateur');
+    var input = document.getElementById('nom_operateur');
+    if (select.value === '1') {
+        group.style.display = 'block';
+        input.required = true;
+    } else {
+        group.style.display = 'none';
+        input.required = false;
+        input.value = '';
+    }
+}
+</script>
 <?= $this->endSection() ?>
