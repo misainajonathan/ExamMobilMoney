@@ -22,6 +22,15 @@ class Admin extends BaseController
         $this->clientModel    = new ClientModel();
     }
 
+    public function dashboard()
+    {
+        $data['gains'] = $this->operationModel->getSituationGains();
+        $data['total_clients'] = count($this->clientModel->getAllClients());
+        $data['total_prefixes'] = count($this->prefixModel->getAllPrefixes());
+        
+        return view('admin/dashboard', $data);
+    }
+
     public function prefixes()
     {
         $data['prefixes'] = $this->prefixModel->getAllPrefixes();

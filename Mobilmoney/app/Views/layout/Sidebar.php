@@ -1,4 +1,4 @@
-<div class="d-flex flex-column flex-shrink-0 p-3 bg-light border-end" style="width: 280px; height: 100vh; position: fixed;">
+<div class="d-flex flex-column flex-shrink-0 p-3 bg-light border-end" style="width: 280px; height: 100vh; position: fixed; top: 0; left: 0;">
     <!-- Titre Admin -->
     <a href="<?= base_url('admin/dashboard') ?>" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
         <i class="bi bi-speedometer2 fs-4 me-2 text-primary"></i>
@@ -38,3 +38,6 @@
         </a>
     </div>
 </div>
+
+<!-- Conteneur principal pour décaler le contenu des vues vers la droite -->
+<div style="margin-left: 280px; min-height: 100vh;" class="bg-light">
