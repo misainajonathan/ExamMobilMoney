@@ -263,4 +263,130 @@ class Client extends BaseController
         $id = session()->get('client_id');
         return $id !== null ? (int) $id : null;
     }
+
+    public function checkNumeroOperateur($prefixe)
+    {
+        $prefixeModel = new PrefixeModel();
+        $p = $prefixeModel->getByValeur((string) $prefixe);
+
+        if ($p !== null) {
+            return $this->response->setJSON([
+                'existe' => true,
+                'nom_operateur' => $p['nom_operateur'],
+                'est_externe' => (int) $p['est_externe'] === 1
+            ]);
+        }
+
+        return $this->response->setJSON(['existe' => false]);
+    }
+
+    public function effectuerTransfert()
+    {
+        $session = session();
+        $idExpediteur = (int) $session->get('client_id');
+
+        $numeroDestinataire = trim((string) $this->request->getPost('numero_destinataire'));
+        $montantSaisi = (float) $this->request->getPost('montant');
+        $inclureFraisRetrait = (int) $this->request->getPost('inclure_frais_retrait') === 1 ? 1 : 0;
+
+        if ($numeroDestinataire === '' || $montantSaisi <= 0) {
+            $session->setFlashdata('error', 'Données de transfert invalides.');
+            return redirect()->to(site_url('client/transfert'));
+        }
+
+        $clientModel = new ClientModel();
+        $destinataire = $clientModel->getByNumero($numeroDestinataire);
+
+        // Si le destinataire n'existe pas, création automatique du compte client
+        if ($destinataire === null) {
+            if (!$clientModel->createClient($numeroDestinataire)) {
+                $session->setFlashdata('error', 'Impossible de créer le compte du destinataire.');
+                return redirect()->to(site_url('client/transfert'));
+            }
+            $destinataire = $clientModel->getByNumero($numeroDestinataire);
+        }
+
+        $idDestinataire = (int) $destinataire['id'];
+
+        if ($idExpediteur === $idDestinataire) {
+            $session->setFlashdata('error', 'Vous ne pouvez pas vous envoyer d\'argent à vous-même.');
+            return redirect()->to(site_url('client/transfert'));
+        }
+
+        // Détection de l'opérateur de destination
+        $prefixe = substr($numeroDestinataire, 0, 3);
+        $prefixeModel = new PrefixeModel();
+        $p = $prefixeModel->getByValeur($prefixe);
+
+        if ($p === null) {
+            $session->setFlashdata('error', 'Opérateur destinataire non supporté.');
+            return redirect()->to(site_url('client/transfert'));
+        }
+
+        $estExterne = (int) $p['est_externe'] === 1;
+        $nomOperateurDest = $p['nom_operateur'];
+
+        $baremeModel = new BaremeModel();
+        $operationModel = new OperationModel();
+
+        $montantAEnvoyer = $montantSaisi;
+        $fraisBaseTransfert = 0.0;
+        $fraisCommettantExterne = 0.0;
+
+        if ($estExterne) {
+            // Pas de frais de retrait inclus pour l'externe
+            $inclureFraisRetrait = 0;
+            
+            // Calcul des frais de transfert normaux
+            $fraisBaseTransfert = $baremeModel->getFraisPourMontant('transfert', $montantAEnvoyer);
+            
+            // Récupération de la commission additionnelle en %
+            $operateurModel = new OperateurModel();
+            $commissions = $operateurModel->getCommissions();
+            $pctExtra = 0.0;
+            foreach ($commissions as $c) {
+                if ($c['nom_operateur'] === $nomOperateurDest) {
+                    $pctExtra = (float) $c['commission_supplementaire_pct'];
+                    break;
+                }
+            }
+            $fraisCommettantExterne = $montantAEnvoyer * ($pctExtra / 100);
+        } else {
+            // Même opérateur
+            if ($inclureFraisRetrait === 1) {
+                $fraisRetraitFutur = $baremeModel->getFraisPourMontant('retrait', $montantSaisi);
+                $montantAEnvoyer = $montantSaisi + $fraisRetraitFutur;
+            }
+            $fraisBaseTransfert = $baremeModel->getFraisPourMontant('transfert', $montantAEnvoyer);
+        }
+
+        $fraisTotauxAppliques = $fraisBaseTransfert + $fraisCommettantExterne;
+        $totalADebiter = $montantAEnvoyer + $fraisTotauxAppliques;
+
+        // Vérification de la provision du compte de l'expéditeur
+        $soldeActuel = $operationModel->getBalanceByClientId($idExpediteur);
+        if ($soldeActuel < $totalADebiter) {
+            $session->setFlashdata('error', 'Solde insuffisant pour cette opération. Requis : ' . number_format($totalADebiter, 2, ',', ' ') . ' Ar');
+            return redirect()->to(site_url('client/transfert'));
+        }
+
+        // Insertion du transfert unique
+        $succes = $operationModel->insertOperation(
+            $montantAEnvoyer,
+            $fraisTotauxAppliques,
+            $idExpediteur,
+            $idDestinataire,
+            'transfert',
+            $nomOperateurDest,
+            $inclureFraisRetrait
+        );
+
+        if ($succes) {
+            $session->setFlashdata('success', 'Transfert effectué avec succès.');
+        } else {
+            $session->setFlashdata('error', 'Échec technique de l\'opération.');
+        }
+
+        return redirect()->to(site_url('client/transfert'));
+    }
 }

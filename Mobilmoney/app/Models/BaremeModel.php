@@ -83,4 +83,12 @@ class BaremeModel
 
         return $pdo;
     }
+
+    public function getFraisPourMontant(string $typeOperation, float $montant): float
+    {
+        $statement = $this->pdo()->prepare('SELECT montant_frais FROM baremes_frais WHERE type_operation = :type AND montant_min <= :montant AND montant_max >= :montant LIMIT 1');
+        $statement->execute(['type' => $typeOperation, 'montant' => $montant]);
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? (float) $row['montant_frais'] : 0.0;
+    }
 }

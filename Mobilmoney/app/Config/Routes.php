@@ -32,5 +32,10 @@ $routes->group('client', ['filter' => 'session'], static function (RouteCollecti
     $routes->post('retrait', 'Client::retrait');
     $routes->get('transfert', 'Client::transfert');
     $routes->post('transfert', 'Client::transfert');
+    $routes->get('dashboard', 'Client::dashboard');
+    $routes->post('effectuerDepot', 'Client::effectuerDepot');
+    $routes->post('effectuerRetrait', 'Client::effectuerRetrait');
+    $routes->post('effectuerTransfert', 'Client::effectuerTransfert');
+    $routes->get('checkNumeroOperateur/(:any)', 'Client::checkNumeroOperateur/$1');
     $routes->get('historique', 'Client::historique');
 });

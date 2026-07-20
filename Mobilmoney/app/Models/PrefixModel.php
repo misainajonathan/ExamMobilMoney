@@ -41,4 +41,12 @@ class PrefixeModel
         $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_COLUMN) : [];
         return is_array($rows) ? $rows : [];
     }
+
+    public function getByValeur(string $valeur): ?array
+    {
+        $statement = $this->pdo()->prepare('SELECT id, valeur, est_externe, nom_operateur FROM prefixes WHERE valeur = :valeur LIMIT 1');
+        $statement->execute(['valeur' => $valeur]);
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
 }
