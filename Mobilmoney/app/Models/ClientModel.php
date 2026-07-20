@@ -2,29 +2,62 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
-
-class ClientModel extends Model
+class ClientModel
 {
-    protected $table            = 'client';
-    protected $primaryKey       = 'id';
-    protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $allowedFields    = ['telephone'];
-
-    public function getClientParTelephone(string $telephone)
+    public function findByTelephone(string $telephone): ?array
     {
-        return $this->where('telephone', $telephone)->first();
+        $statement = $this->pdo()->prepare('SELECT id, telephone, date_creation FROM client WHERE telephone = :telephone LIMIT 1');
+        $statement->execute(['telephone' => $telephone]);
+        $client = $statement->fetch(\PDO::FETCH_ASSOC);
+
+        return $client === false ? null : $client;
     }
 
-    public function inscrireAutomatique(string $telephone)
+    public function insert(array $data, bool $returnInsertId = false): int|bool
     {
-        $id = $this->insert(['telephone' => $telephone]);
-        return $this->find($id);
+        $pdo = $this->pdo();
+        $statement = $pdo->prepare('INSERT INTO client (telephone) VALUES (:telephone)');
+        $success = $statement->execute([
+            'telephone' => $data['telephone'],
+        ]);
+
+        if (! $success) {
+            return false;
+        }
+
+        if (! $returnInsertId) {
+            return true;
+        }
+
+        return (int) $pdo->lastInsertId();
     }
 
-    public function getAllClients()
+    public function find(int $id): ?array
     {
-        return $this->findAll();
+        $statement = $this->pdo()->prepare('SELECT id, telephone, date_creation FROM client WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $id]);
+        $client = $statement->fetch(\PDO::FETCH_ASSOC);
+
+        return $client === false ? null : $client;
+    }
+
+    /**
+     * Calcule le solde du client à partir de l'historique de ses opérations
+     * (dépôts + transferts reçus - retraits - transferts envoyés - frais).
+     */
+    public function getSolde(int $clientId): float
+    {
+        $operationModel = new OperationModel();
+
+        return $operationModel->getBalanceByClientId($clientId);
+    }
+
+    private function pdo(): \PDO
+    {
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database.sqlite');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+
+        return $pdo;
     }
 }
