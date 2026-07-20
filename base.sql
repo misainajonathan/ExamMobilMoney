@@ -41,3 +41,35 @@ CREATE TABLE operation(
     FOREIGN KEY (id_client_destinataire) REFERENCES client(id),
     FOREIGN KEY (id_type_operation) REFERENCES type_operation(id)
 );
+
+-- Préfixes autorisés par l'opérateur
+INSERT INTO prefixe (prefixe) VALUES ('033');
+INSERT INTO prefixe (prefixe) VALUES ('037');
+
+-- Types d'opérations
+INSERT INTO type_operation (type_operation) VALUES ('depot');
+INSERT INTO type_operation (type_operation) VALUES ('retrait');
+INSERT INTO type_operation (type_operation) VALUES ('transfert');
+
+-- Barèmes de frais par tranche de montant
+-- Dépôt : gratuit (aucun barème nécessaire, frais_appliques = 0 par défaut)
+
+-- Retrait
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (0, 5000, 100, (SELECT id FROM type_operation WHERE type_operation = 'retrait'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (5001, 20000, 300, (SELECT id FROM type_operation WHERE type_operation = 'retrait'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (20001, 50000, 500, (SELECT id FROM type_operation WHERE type_operation = 'retrait'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (50001, 200000, 1000, (SELECT id FROM type_operation WHERE type_operation = 'retrait'));
+
+-- Transfert
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (0, 5000, 50, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (5001, 20000, 200, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (20001, 50000, 400, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
+INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
+    VALUES (50001, 200000, 800, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
