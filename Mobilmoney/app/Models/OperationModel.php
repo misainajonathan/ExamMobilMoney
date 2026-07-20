@@ -11,17 +11,24 @@ class OperationModel
         $this->databasePath = __DIR__ . '/../../writable/database/database.sqlite';
     }
 
+    private function pdo(): \PDO
+    {
+        $pdo = new \PDO('sqlite:' . $this->databasePath);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+        return $pdo;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
     public function findByClientId(int $clientId): array
     {
         $statement = $this->pdo()->prepare(
-            'SELECT o.id, o.montant, o.frais_appliques, o.date_operation, o.id_client_expediteur, o.id_client_destinataire, o.id_type_operation, t.type_operation
-             FROM operation o
-             INNER JOIN type_operation t ON t.id = o.id_type_operation
-             WHERE o.id_client_expediteur = :client_id OR o.id_client_destinataire = :client_id
-             ORDER BY o.date_operation DESC, o.id DESC'
+            'SELECT id, montant, frais_appliques, date_operation, id_client_expediteur, id_client_destinataire, type_operation, operateur_destination, inclure_frais_retrait
+             FROM operations
+             WHERE id_client_expediteur = :client_id OR id_client_destinataire = :client_id
+             ORDER BY date_operation DESC, id DESC'
         );
         $statement->execute(['client_id' => $clientId]);
 
@@ -55,30 +62,16 @@ class OperationModel
         ];
     }
 
-    public function getTypeIdByName(string $typeName): ?int
-    {
-        $statement = $this->pdo()->prepare('SELECT id FROM type_operation WHERE LOWER(TRIM(type_operation)) = LOWER(TRIM(:type_name)) LIMIT 1');
-        $statement->execute(['type_name' => $typeName]);
-        $type = $statement->fetch(\PDO::FETCH_ASSOC);
-
-        if (! is_array($type) || ! isset($type['id'])) {
-            return null;
-        }
-
-        return (int) $type['id'];
-    }
-
     /**
      * @return array<int, array<string, mixed>>
      */
     public function getOperationsByType(string $typeName): array
     {
         $statement = $this->pdo()->prepare(
-            'SELECT o.id, o.montant, o.frais_appliques, o.date_operation, o.id_client_expediteur, o.id_client_destinataire, t.type_operation
-             FROM operation o
-             INNER JOIN type_operation t ON t.id = o.id_type_operation
-             WHERE LOWER(TRIM(t.type_operation)) = LOWER(TRIM(:type_name))
-             ORDER BY o.date_operation DESC, o.id DESC'
+            'SELECT id, montant, frais_appliques, date_operation, id_client_expediteur, id_client_destinataire, type_operation, operateur_destination, inclure_frais_retrait
+             FROM operations
+             WHERE LOWER(TRIM(type_operation)) = LOWER(TRIM(:type_name))
+             ORDER BY date_operation DESC, id DESC'
         );
         $statement->execute(['type_name' => $typeName]);
 
@@ -97,17 +90,15 @@ class OperationModel
 
         $placeholders = implode(',', array_fill(0, count($typeNames), '?'));
         $statement = $this->pdo()->prepare(
-            'SELECT COALESCE(SUM(o.frais_appliques), 0) AS total_fees
-             FROM operation o
-             INNER JOIN type_operation t ON t.id = o.id_type_operation
-             WHERE LOWER(TRIM(t.type_operation)) IN (' . $placeholders . ')'
+            'SELECT COALESCE(SUM(frais_appliques), 0) AS total_fees
+             FROM operations
+             WHERE LOWER(TRIM(type_operation)) IN (' . $placeholders . ')'
         );
         $statement->execute(array_map(static fn (string $value): string => strtolower(trim($value)), $typeNames));
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
         return (float) ($row['total_fees'] ?? 0.0);
     }
-
 
     public function getBalanceByClientId(int $clientId): float
     {
@@ -131,14 +122,6 @@ class OperationModel
             }
         }
         return $solde;
-    }
-
-    private function pdo(): \PDO
-    {
-        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-        return $pdo;
     }
 
     public function insertOperation(float $montant, float $frais, int $expediteurId, ?int $destinataireId, string $type, ?string $operateurDestination = null, int $inclureFraisRetrait = 0): bool
