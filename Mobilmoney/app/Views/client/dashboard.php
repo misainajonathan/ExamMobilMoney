@@ -1,4 +1,4 @@
-<?= $this->extend('layout/main') ?>
+<?= $this->extend('layout/client') ?>
 
 <?= $this->section('content') ?>
 <div class="row g-4">
@@ -13,10 +13,10 @@
         </div>
 
         <div class="d-grid gap-2 mt-4">
-            <a href="/client/depot" class="btn btn-success">Faire un dépôt</a>
-            <a href="/client/retrait" class="btn btn-warning">Faire un retrait</a>
-            <a href="/client/transfert" class="btn btn-info text-white">Faire un transfert</a>
-            <a href="/client/historique" class="btn btn-outline-secondary">Voir l'historique complet</a>
+            <a href="<?= site_url('client/depot') ?>" class="btn btn-success">Faire un dépôt</a>
+            <a href="<?= site_url('client/retrait') ?>" class="btn btn-warning">Faire un retrait</a>
+            <a href="<?= site_url('client/transfert') ?>" class="btn btn-info text-white">Faire un transfert</a>
+            <a href="<?= site_url('client/historique') ?>" class="btn btn-outline-secondary">Voir l'historique complet</a>
         </div>
     </div>
 

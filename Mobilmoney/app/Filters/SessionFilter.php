@@ -2,23 +2,26 @@
 
 namespace App\Filters;
 
-class SessionFilter
-{
-    public function before($request, $arguments = null)
-    {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
+use CodeIgniter\Filters\FilterInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
 
-        if (! empty($_SESSION['client_id'])) {
+class SessionFilter implements FilterInterface
+{
+    public function before(RequestInterface $request, $arguments = null)
+    {
+        $session = session();
+
+        // Si l'utilisateur est connecté comme client ou comme admin, on le laisse passer
+        if ($session->has('client_id') || $session->has('is_admin')) {
             return null;
         }
 
-        header('Location: /login', true, 302);
-        exit;
+        // Sinon, redirection propre vers la page de connexion
+        return redirect()->to(base_url('login'));
     }
 
-    public function after($request, $response, $arguments = null)
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         return null;
     }

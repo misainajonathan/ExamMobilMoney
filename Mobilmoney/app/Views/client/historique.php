@@ -1,4 +1,4 @@
-<?= $this->extend('layout/main') ?>
+<?= $this->extend('layout/client') ?>
 
 <?= $this->section('content') ?>
 <div class="card shadow-sm">

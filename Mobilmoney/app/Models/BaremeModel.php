@@ -77,7 +77,7 @@ class BaremeModel
 
     private function pdo(): \PDO
     {
-        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database.sqlite');
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 

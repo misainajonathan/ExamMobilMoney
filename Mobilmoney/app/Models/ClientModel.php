@@ -4,6 +4,17 @@ namespace App\Models;
 
 class ClientModel
 {
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAllClients(): array
+    {
+        $statement = $this->pdo()->query('SELECT id, telephone, date_creation FROM client ORDER BY date_creation DESC, id DESC');
+        $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
+
+        return is_array($rows) ? $rows : [];
+    }
+
     public function findByTelephone(string $telephone): ?array
     {
         $statement = $this->pdo()->prepare('SELECT id, telephone, date_creation FROM client WHERE telephone = :telephone LIMIT 1');
@@ -41,10 +52,6 @@ class ClientModel
         return $client === false ? null : $client;
     }
 
-    /**
-     * Calcule le solde du client à partir de l'historique de ses opérations
-     * (dépôts + transferts reçus - retraits - transferts envoyés - frais).
-     */
     public function getSolde(int $clientId): float
     {
         $operationModel = new OperationModel();
@@ -54,7 +61,7 @@ class ClientModel
 
     private function pdo(): \PDO
     {
-        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database.sqlite');
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 

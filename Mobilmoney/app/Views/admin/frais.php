@@ -1,3 +1,6 @@
+<?= $this->extend('layout/admin') ?>
+
+<?= $this->section('content') ?>
 <div class="container-fluid py-4">
     <h2 class="h4 mb-4 fw-bold text-dark">Barèmes de Frais par Tranche</h2>
 
@@ -95,3 +98,4 @@ document  .getElementById('editFraisModal').addEventListener('show.bs.modal', fu
     document.getElementById('modal-service').textContent = button.getAttribute('data-service');
 });
 </script>
+<?= $this->endSection() ?>

@@ -11,7 +11,7 @@
                     <div class="alert alert-danger"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
                 <?php endif; ?>
 
-                <form method="post" action="/login">
+                <form method="post" action="<?= site_url('login') ?>">
 
                     <div class="mb-3">
                         <label for="telephone" class="form-label">Numéro de téléphone</label>
