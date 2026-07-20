@@ -10,12 +10,13 @@ class ClientModel
         $statement->execute(['telephone' => $telephone]);
         $client = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $client === null ? null : $client;
+        return $client === false ? null : $client;
     }
 
     public function insert(array $data, bool $returnInsertId = false): int|bool
     {
-        $statement = $this->pdo()->prepare('INSERT INTO client (telephone) VALUES (:telephone)');
+        $pdo = $this->pdo();
+        $statement = $pdo->prepare('INSERT INTO client (telephone) VALUES (:telephone)');
         $success = $statement->execute([
             'telephone' => $data['telephone'],
         ]);
@@ -28,7 +29,7 @@ class ClientModel
             return true;
         }
 
-        return (int) $this->pdo()->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     public function find(int $id): ?array
@@ -37,7 +38,18 @@ class ClientModel
         $statement->execute(['id' => $id]);
         $client = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $client === null ? null : $client;
+        return $client === false ? null : $client;
+    }
+
+    /**
+     * Calcule le solde du client à partir de l'historique de ses opérations
+     * (dépôts + transferts reçus - retraits - transferts envoyés - frais).
+     */
+    public function getSolde(int $clientId): float
+    {
+        $operationModel = new OperationModel();
+
+        return $operationModel->getBalanceByClientId($clientId);
     }
 
     private function pdo(): \PDO

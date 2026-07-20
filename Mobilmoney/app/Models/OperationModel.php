@@ -87,7 +87,8 @@ class OperationModel
             return false;
         }
 
-        $statement = $this->pdo()->prepare(
+        $pdo = $this->pdo();
+        $statement = $pdo->prepare(
             'INSERT INTO operation (montant, frais_appliques, id_client_expediteur, id_client_destinataire, id_type_operation)
              VALUES (:montant, :frais_appliques, :id_client_expediteur, :id_client_destinataire, :id_type_operation)'
         );
@@ -104,7 +105,7 @@ class OperationModel
             return false;
         }
 
-        return (int) $this->pdo()->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     /**

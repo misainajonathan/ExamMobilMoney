@@ -56,7 +56,14 @@ class Auth extends BaseController
 
         session()->setFlashdata('success', 'Connexion réussie.');
 
-        return redirect()->to('/');
+        return redirect()->to('/client');
+    }
+
+    public function logout()
+    {
+        session()->destroy();
+
+        return redirect()->to('/login');
     }
 
     private function normalizeTelephone(string $telephone): string
