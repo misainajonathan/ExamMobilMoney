@@ -389,4 +389,121 @@ class Client extends BaseController
 
         return redirect()->to(site_url('client/transfert'));
     }
+
+    public function transfertMultiple()
+    {
+        $clientId = $this->currentClientId();
+        if ($clientId === null) {
+            return redirect()->to(site_url('login'));
+        }
+
+        $clientModel = new ClientModel();
+        $data = [
+            'title' => 'Envoi Multiple',
+            'solde' => $clientModel->getSolde($clientId),
+        ];
+
+        return view('client/transfert_multiple', $data);
+    }
+
+    public function effectuerTransfertMultiple()
+    {
+        $session = session();
+        $idExpediteur = (int) $session->get('client_id');
+        $clientModel = new ClientModel();
+        $operationModel = new OperationModel();
+        $prefixeModel = new PrefixeModel();
+        $baremeModel = new BaremeModel();
+
+        $numerosRaw = trim((string) $this->request->getPost('numeros'));
+        $montantTotal = (float) $this->request->getPost('montant_total');
+
+        if ($numerosRaw === '' || $montantTotal <= 0) {
+            $session->setFlashdata('error', 'Données d\'envoi invalides.');
+            return redirect()->to(site_url('client/transfertMultiple'));
+        }
+
+        // Séparer les numéros par virgule et nettoyer
+        $numeros = array_unique(array_filter(array_map('trim', explode(',', $numerosRaw))));
+        $nombreDestinataires = count($numeros);
+
+        if ($nombreDestinataires === 0) {
+            $session->setFlashdata('error', 'Aucun numéro valide saisi.');
+            return redirect()->to(site_url('client/transfertMultiple'));
+        }
+
+        // Récupérer l'opérateur de l'expéditeur
+        $expediteur = $clientModel->find($idExpediteur); // Ou obtenir le numéro depuis la session
+        $monNumero = session()->get('telephone') ?? '';
+        $monPrefixe = substr($monNumero, 0, 3);
+        $monOperateur = $prefixeModel->getByValeur($monPrefixe);
+
+        if ($monOperateur === null) {
+            $session->setFlashdata('error', 'Impossible de détecter votre opérateur.');
+            return redirect()->to(site_url('client/transfertMultiple'));
+        }
+
+        // 1. Validation : Même opérateur uniquement
+        foreach ($numeros as $num) {
+            if ($num === $monNumero) {
+                $session->setFlashdata('error', 'Vous ne pouvez pas inclure votre propre numéro.');
+                return redirect()->to(site_url('client/transfertMultiple'));
+            }
+
+            $prefixeDest = substr($num, 0, 3);
+            $opDest = $prefixeModel->getByValeur($prefixeDest);
+
+            if ($opDest === null || $opDest['nom_operateur'] !== $monOperateur['nom_operateur'] || (int)$opDest['est_externe'] === 1) {
+                $session->setFlashdata('error', "Le numéro $num n'appartient pas au même opérateur que vous.");
+                return redirect()->to(site_url('client/transfertMultiple'));
+            }
+        }
+
+        // 2. Division équitable du montant
+        $montantParPersonne = $montantTotal / $nombreDestinataires;
+        
+        // Calcul des frais par transfert (Même opérateur = frais standard sans commission externe)
+        $fraisParTransfert = $baremeModel->getFraisPourMontant('transfert', $montantParPersonne);
+        $totalFraisToutesOperations = $fraisParTransfert * $nombreDestinataires;
+        $coutTotalDebite = $montantTotal + $totalFraisToutesOperations;
+
+        // Vérification du solde global
+        $soldeActuel = $operationModel->getBalanceByClientId($idExpediteur);
+        if ($soldeActuel < $coutTotalDebite) {
+            $session->setFlashdata('error', 'Solde insuffisant pour le montant global + frais (Requis : ' . number_format($coutTotalDebite, 2, ',', ' ') . ' Ar)');
+            return redirect()->to(site_url('client/transfertMultiple'));
+        }
+
+        // 3. Exécution des transactions
+        $succesGlobal = true;
+        foreach ($numeros as $num) {
+            $destinataire = $clientModel->getByNumero($num);
+            if ($destinataire === null) {
+                $clientModel->createClient($num);
+                $destinataire = $clientModel->getByNumero($num);
+            }
+
+            $inserted = $operationModel->insertOperation(
+                $montantParPersonne,
+                $fraisParTransfert,
+                $idExpediteur,
+                (int)$destinataire['id'],
+                'transfert',
+                $monOperateur['nom_operateur'],
+                0
+            );
+            
+            if (!$inserted) {
+                $succesGlobal = false;
+            }
+        }
+
+        if ($succesGlobal) {
+            $session->setFlashdata('success', 'Envoi multiple effectué avec succès à ' . $nombreDestinataires . ' destinataires.');
+        } else {
+            $session->setFlashdata('error', 'Certaines transactions ont échoué lors du traitement.');
+        }
+
+        return redirect()->to(site_url('client/dashboard'));
+    }
 }
