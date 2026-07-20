@@ -57,3 +57,30 @@
 | | Exécuter `git add .` et `git commit -m "Version 1 finale"` | Terminal | Étudiant A | Non commencé | 2 | | |
 | | Créer le tag v1 (`git tag v1`) | Terminal | Étudiant A | Non commencé | 2 | | |
 | | Pousser les modifications et le tag (`git push origin main --tags`) | Terminal | Étudiant A | Non commencé | 3 | | |
+
+# Suivi des Tâches - Version 2
+
+| Fonctionnalité | Description / Sous-tâche | Fichier / Route | Qui | Avancement | Temps théorique (min) | Temps passé (min) | Temps restant (min) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **BDD & Schema Updates** | Écrire le script de modification pour ajouter une colonne `est_externe` ou `id_operateur` dans la table `prefixes` | `base.sql` | Étudiant A | Non commencé | 5 | | |
+| | Écrire le script de création de la table `configuration_operateurs` (pour stocker le % de commission en plus par opérateur externe) | `base.sql` | Étudiant A | Non commencé | 10 | | |
+| | Écrire le script de modification pour ajouter la colonne `operateur_destination` et `inclure_frais_retrait` dans la table `operations` | `base.sql` | Étudiant A | Non commencé | 5 | | |
+| **Back-Office (Configuration)** | Mettre à jour le formulaire d'ajout des préfixes pour gérer l'association à un opérateur (interne vs externe : ex 032, 031) | `app/Views/admin/prefixes.php` | Étudiant A | Non commencé | 15 | | |
+| | Mettre à jour la logique CRUD du contrôleur `Admin.php` pour enregistrer le type d'opérateur du préfixe | `app/Controllers/Admin.php` | Étudiant A | Non commencé | 15 | | |
+| | Créer la vue de configuration du pourcentage de commission supplémentaire pour les transferts vers les autres opérateurs | `app/Views/admin/commissions.php` | Étudiant A | Non commencé | 20 | | |
+| | Coder la logique de traitement et de sauvegarde de ces pourcentages de commissions par opérateur externe | `app/Controllers/Admin.php` | Étudiant A | Non commencé | 20 | | |
+| **Back-Office (Rapports V2)** | Modifier la vue de situation des gains pour séparer les gains de l'opérateur interne et ceux issus des autres opérateurs | `app/Views/admin/gains.php` | Étudiant A | Non commencé | 25 | | |
+| | Coder la requête SQL groupée pour ventiler les frais collectés (opérateur propre vs autres opérateurs) | `app/Controllers/Admin.php` | Étudiant A | Non commencé | 25 | | |
+| | Créer la vue pour la situation des montants cumulés à envoyer/reverser à chaque opérateur externe | `app/Views/admin/reversements.php` | Étudiant A | Non commencé | 20 | | |
+| | Coder la logique de calcul des montants nets à transférer par opérateur externe (somme des transferts vers cet opérateur) | `app/Controllers/Admin.php` | Étudiant A | Non commencé | 25 | | |
+| **Front-Office (Transfert & Retrait V2)** | Mettre à jour le formulaire de transfert client pour ajouter la case à cocher "Inclure les frais de retrait" | `app/Views/client/transfert.php` | Étudiant B | Non commencé | 15 | | |
+| | Modifier la logique de calcul des frais de transfert : si opérateur externe, appliquer le % de commission supplémentaire | `app/Controllers/Client.php` | Étudiant B | Non commencé | 25 | | |
+| | Intégrer la condition d'annulation des frais de retrait si le transfert concerne un opérateur externe | `app/Controllers/Client.php` | Étudiant B | Non commencé | 15 | | |
+| | Coder l'algorithme d'inclusion des frais de retrait : calculer le montant nécessaire pour que le destinataire reçoive la somme nette après son futur retrait | `app/Controllers/Client.php` | Étudiant B | Non commencé | 30 | | |
+| **Front-Office (Envoi Multiple)** | Créer l'interface du formulaire pour l'envoi multiple (saisie de plusieurs numéros séparés par des virgules ou champs dynamiques) | `app/Views/client/envoi_multiple.php` | Étudiant B | Non commencé | 25 | | |
+| | Coder la validation stricte de l'envoi multiple : vérifier que tous les numéros appartiennent exclusivement au même opérateur que l'expéditeur | `app/Controllers/Client.php` | Étudiant B | Non commencé | 25 | | |
+| | Coder la logique de division équitable du montant total saisi par le nombre de destinataires valides | `app/Controllers/Client.php` | Étudiant B | Non commencé | 20 | | |
+| | Développer la boucle de transaction SQL pour exécuter et enregistrer chaque transfert individuel composant l'envoi multiple | `app/Controllers/Client.php` | Étudiant B | Non commencé | 30 | | |
+| **Livraison V2** | Effectuer les tests d'intégration croisés (calculs des commissions externes, calculs de l'envoi multiple divisé) | Navigateur | Étudiant A & B | Non commencé | 30 | | |
+| | Nettoyer le code, valider la conformité aux exigences strictes de la V2 et mettre à jour le fichier `Taches.md` | Tous les fichiers | Étudiant A & B | Non commencé | 15 | | |
+| | Exécuter les commandes Git de clôture, créer le tag de version (`git tag v2`) et pousser vers le dépôt distant | Terminal | Étudiant A | Non commencé | 10 | | |

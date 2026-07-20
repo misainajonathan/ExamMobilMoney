@@ -1,3 +1,5 @@
+-- v1
+
 -- cote operateur
 DROP TABLE IF EXISTS prefixe;
 CREATE TABLE prefixe(
@@ -76,3 +78,19 @@ INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
 
 
 INSERT INTO client (telephone) VALUES ('0331234567');
+
+-- v2
+-- 1. Modification de la table prefixe
+ALTER TABLE prefixe ADD COLUMN est_externe INTEGER DEFAULT 0;
+ALTER TABLE prefixe ADD COLUMN nom_operateur TEXT DEFAULT 'Interne';
+
+-- 2. Création de la table configuration_operateurs
+CREATE TABLE IF NOT EXISTS configuration_operateurs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom_operateur TEXT UNIQUE NOT NULL,
+    commission_supplementaire_pct REAL DEFAULT 0.0
+);
+
+-- 3. Modification de la table operation
+ALTER TABLE operation ADD COLUMN operateur_destination TEXT DEFAULT NULL;
+ALTER TABLE operation ADD COLUMN inclure_frais_retrait INTEGER DEFAULT 0;
