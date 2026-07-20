@@ -8,12 +8,12 @@ use App\Models\OperationModel;
 
 class Client extends BaseController
 {
-    public function index(): string
+    public function index()
     {
         $clientId = $this->currentClientId();
 
         if ($clientId === null) {
-            return $this->redirectToLogin();
+            return redirect()->to(site_url('login'));
         }
 
         $operationModel = new OperationModel();
@@ -21,7 +21,7 @@ class Client extends BaseController
 
         $data = [
             'title' => 'Tableau de bord',
-            'telephone' => $_SESSION['client_telephone'] ?? '',
+            'telephone' => session()->get('telephone') ?? '',
             'solde' => $clientModel->getSolde($clientId),
             'operations' => array_slice($operationModel->findByClientId($clientId), 0, 5),
             'clientId' => $clientId,
@@ -30,12 +30,12 @@ class Client extends BaseController
         return view('client/dashboard', $data);
     }
 
-    public function depot(): string
+    public function depot()
     {
         $clientId = $this->currentClientId();
 
         if ($clientId === null) {
-            return $this->redirectToLogin();
+            return redirect()->to(site_url('login'));
         }
 
         $data = [
@@ -44,7 +44,7 @@ class Client extends BaseController
             'montant' => '',
         ];
 
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return view('client/depot', $data);
         }
 
@@ -66,15 +66,15 @@ class Client extends BaseController
 
         session()->setFlashdata('success', 'Dépôt de ' . number_format($montant, 2, ',', ' ') . ' Ar effectué avec succès.');
 
-        return redirect()->to('/client');
+        return redirect()->to(site_url('client'));
     }
 
-    public function retrait(): string
+    public function retrait()
     {
         $clientId = $this->currentClientId();
 
         if ($clientId === null) {
-            return $this->redirectToLogin();
+            return redirect()->to(site_url('login'));
         }
 
         $clientModel = new ClientModel();
@@ -87,7 +87,7 @@ class Client extends BaseController
             'solde' => $solde,
         ];
 
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return view('client/retrait', $data);
         }
 
@@ -128,15 +128,15 @@ class Client extends BaseController
 
         session()->setFlashdata('success', 'Retrait de ' . number_format($montant, 2, ',', ' ') . ' Ar effectué avec succès (frais: ' . number_format($frais, 2, ',', ' ') . ' Ar).');
 
-        return redirect()->to('/client');
+        return redirect()->to(site_url('client'));
     }
 
-    public function transfert(): string
+    public function transfert()
     {
         $clientId = $this->currentClientId();
 
         if ($clientId === null) {
-            return $this->redirectToLogin();
+            return redirect()->to(site_url('login'));
         }
 
         $clientModel = new ClientModel();
@@ -150,7 +150,7 @@ class Client extends BaseController
             'solde' => $solde,
         ];
 
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return view('client/transfert', $data);
         }
 
@@ -212,7 +212,6 @@ class Client extends BaseController
             ]);
         }
 
-        // Une seule ligne d'opération enregistre le débit expéditeur / crédit destinataire / frais opérateur.
         $operationModel = new OperationModel();
         $inserted = $operationModel->insertOperation($montant, $frais, $clientId, $destinataireId, 'transfert');
 
@@ -226,15 +225,15 @@ class Client extends BaseController
 
         session()->setFlashdata('success', 'Transfert de ' . number_format($montant, 2, ',', ' ') . ' Ar vers ' . $telephoneDestinataire . ' effectué avec succès (frais: ' . number_format($frais, 2, ',', ' ') . ' Ar).');
 
-        return redirect()->to('/client');
+        return redirect()->to(site_url('client'));
     }
 
-    public function historique(): string
+    public function historique()
     {
         $clientId = $this->currentClientId();
 
         if ($clientId === null) {
-            return $this->redirectToLogin();
+            return redirect()->to(site_url('login'));
         }
 
         $operationModel = new OperationModel();
@@ -261,20 +260,7 @@ class Client extends BaseController
 
     private function currentClientId(): ?int
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-
-        if (empty($_SESSION['client_id'])) {
-            return null;
-        }
-
-        return (int) $_SESSION['client_id'];
-    }
-
-    private function redirectToLogin(): string
-    {
-        header('Location: /login', true, 302);
-        exit;
+        $id = session()->get('client_id');
+        return $id !== null ? (int) $id : null;
     }
 }

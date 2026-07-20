@@ -9,16 +9,29 @@ class Auth extends BaseController
     public function login()
     {
         $data = [
-            'title' => 'Connexion client',
+            'title'     => 'Connexion',
             'telephone' => '',
-            'error' => null,
+            'error'     => null,
         ];
 
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return view('auth/login', $data);
         }
 
-        $telephone = $this->normalizeTelephone((string) $this->request->getPost('telephone'));
+        $input = trim((string) $this->request->getPost('telephone'));
+
+        // Connexion admin (opérateur)
+        if ($input === 'admin') {
+            session()->regenerate(true);
+            session()->set([
+                'is_admin'  => true,
+                'telephone' => 'admin'
+            ]);
+            session()->setFlashdata('success', 'Connexion réussie en tant qu\'opérateur.');
+            return redirect()->to(site_url('admin'));
+        }
+
+        $telephone = $this->normalizeTelephone($input);
 
         if ($telephone === '') {
             return view('auth/login', $data + ['error' => 'Le numéro de téléphone est obligatoire.']);
@@ -29,7 +42,7 @@ class Auth extends BaseController
         if ($validationError !== null) {
             return view('auth/login', $data + [
                 'telephone' => $telephone,
-                'error' => $validationError,
+                'error'     => $validationError,
             ]);
         }
 
@@ -51,25 +64,23 @@ class Auth extends BaseController
         session()->regenerate(true);
         session()->set([
             'client_id' => (int) $client['id'],
-            'client_telephone' => $client['telephone'],
+            'telephone' => $client['telephone'],
         ]);
 
         session()->setFlashdata('success', 'Connexion réussie.');
 
-        return redirect()->to('/client');
+        return redirect()->to(site_url('client'));
     }
 
     public function logout()
     {
         session()->destroy();
-
-        return redirect()->to('/login');
+        return redirect()->to(site_url('login'));
     }
 
     private function normalizeTelephone(string $telephone): string
     {
         $telephone = trim($telephone);
-
         return preg_replace('/[\s\-\.\(\)]+/', '', $telephone) ?? '';
     }
 
@@ -99,7 +110,7 @@ class Auth extends BaseController
      */
     private function getPrefixList(): array
     {
-        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database.sqlite');
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
         $statement = $pdo->query('SELECT prefixe FROM prefixe ORDER BY LENGTH(prefixe) DESC');
 
         if ($statement === false) {

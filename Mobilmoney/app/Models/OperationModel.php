@@ -8,7 +8,7 @@ class OperationModel
 
     public function __construct()
     {
-        $this->databasePath = __DIR__ . '/../../writable/database.sqlite';
+        $this->databasePath = __DIR__ . '/../../writable/database/database.sqlite';
     }
 
     /**
@@ -64,6 +64,31 @@ class OperationModel
         }
 
         return $balance;
+    }
+
+    /**
+     * Retourne le solde d'un client pour compatibilité avec le contrôleur admin.
+     */
+    public function getSoldeClient(int $clientId): float
+    {
+        return $this->getBalanceByClientId($clientId);
+    }
+
+    /**
+     * Retourne la situation des gains de l'opérateur par type d'opération.
+     *
+     * @return array{retrait: float, transfert: float, total: float}
+     */
+    public function getSituationGains(): array
+    {
+        $retrait = $this->sumFeesByTypes(['retrait']);
+        $transfert = $this->sumFeesByTypes(['transfert']);
+
+        return [
+            'retrait' => $retrait,
+            'transfert' => $transfert,
+            'total' => $retrait + $transfert,
+        ];
     }
 
     public function getTypeIdByName(string $typeName): ?int
