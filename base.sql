@@ -73,3 +73,6 @@ INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
     VALUES (20001, 50000, 400, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
 INSERT INTO bareme_frais (montant_min, montant_max, frais, id_type_operation)
     VALUES (50001, 200000, 800, (SELECT id FROM type_operation WHERE type_operation = 'transfert'));
+
+
+INSERT INTO client (telephone) VALUES ('0331234567');
