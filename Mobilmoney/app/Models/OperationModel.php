@@ -30,42 +30,6 @@ class OperationModel
         return is_array($rows) ? $rows : [];
     }
 
-    public function getBalanceByClientId(int $clientId): float
-    {
-        $operations = $this->findByClientId($clientId);
-        $balance = 0.0;
-
-        foreach ($operations as $operation) {
-            $type = strtolower(trim((string) ($operation['type_operation'] ?? '')));
-            $montant = (float) ($operation['montant'] ?? 0);
-            $frais = (float) ($operation['frais_appliques'] ?? 0);
-            $expediteur = (int) ($operation['id_client_expediteur'] ?? 0);
-            $destinataire = $operation['id_client_destinataire'] === null ? null : (int) $operation['id_client_destinataire'];
-
-            if ($type === 'depot' && $expediteur === $clientId) {
-                $balance += $montant;
-                continue;
-            }
-
-            if ($type === 'retrait' && $expediteur === $clientId) {
-                $balance -= ($montant + $frais);
-                continue;
-            }
-
-            if ($type === 'transfert') {
-                if ($expediteur === $clientId) {
-                    $balance -= ($montant + $frais);
-                }
-
-                if ($destinataire === $clientId) {
-                    $balance += $montant;
-                }
-            }
-        }
-
-        return $balance;
-    }
-
     /**
      * Retourne le solde d'un client pour compatibilité avec le contrôleur admin.
      */
@@ -102,35 +66,6 @@ class OperationModel
         }
 
         return (int) $type['id'];
-    }
-
-    public function insertOperation(float $montant, float $fraisAppliques, int $idClientExpediteur, ?int $idClientDestinataire, string $typeOperation): int|bool
-    {
-        $idTypeOperation = $this->getTypeIdByName($typeOperation);
-
-        if ($idTypeOperation === null) {
-            return false;
-        }
-
-        $pdo = $this->pdo();
-        $statement = $pdo->prepare(
-            'INSERT INTO operation (montant, frais_appliques, id_client_expediteur, id_client_destinataire, id_type_operation)
-             VALUES (:montant, :frais_appliques, :id_client_expediteur, :id_client_destinataire, :id_type_operation)'
-        );
-
-        $success = $statement->execute([
-            'montant' => $montant,
-            'frais_appliques' => $fraisAppliques,
-            'id_client_expediteur' => $idClientExpediteur,
-            'id_client_destinataire' => $idClientDestinataire,
-            'id_type_operation' => $idTypeOperation,
-        ]);
-
-        if (! $success) {
-            return false;
-        }
-
-        return (int) $pdo->lastInsertId();
     }
 
     /**
@@ -173,12 +108,71 @@ class OperationModel
         return (float) ($row['total_fees'] ?? 0.0);
     }
 
+
+    public function getBalanceByClientId(int $clientId): float
+    {
+        $statement = $this->pdo()->prepare('SELECT * FROM operations WHERE id_client_expediteur = :id OR id_client_destinataire = :id');
+        $statement->execute(['id' => $clientId]);
+        $operations = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        $solde = 0.0;
+        foreach ($operations as $op) {
+            if ($op['type_operation'] === 'depot') {
+                $solde += (float) $op['montant'];
+            } elseif ($op['type_operation'] === 'retrait') {
+                $solde -= ((float) $op['montant'] + (float) $op['frais_appliques']);
+            } elseif ($op['type_operation'] === 'transfert') {
+                if ((int) $op['id_client_expediteur'] === $clientId) {
+                    $solde -= ((float) $op['montant'] + (float) $op['frais_appliques']);
+                }
+                if ((int) $op['id_client_destinataire'] === $clientId) {
+                    $solde += (float) $op['montant'];
+                }
+            }
+        }
+        return $solde;
+    }
+
     private function pdo(): \PDO
     {
-        $pdo = new \PDO('sqlite:' . $this->databasePath);
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-
         return $pdo;
+    }
+
+    public function insertOperation(float $montant, float $frais, int $expediteurId, ?int $destinataireId, string $type, ?string $operateurDestination = null, int $inclureFraisRetrait = 0): bool
+    {
+        $statement = $this->pdo()->prepare('INSERT INTO operations (montant, frais_appliques, id_client_expediteur, id_client_destinataire, type_operation, date_operation, operateur_destination, inclure_frais_retrait) VALUES (:montant, :frais, :expediteur, :destinataire, :type, datetime(\'now\', \'localtime\'), :operateur_destination, :inclure_frais_retrait)');
+        return $statement->execute([
+            'montant' => $montant,
+            'frais' => $frais,
+            'expediteur' => $expediteurId,
+            'destinataire' => $destinataireId,
+            'type' => $type,
+            'operateur_destination' => $operateurDestination,
+            'inclure_frais_retrait' => $inclureFraisRetrait,
+        ]);
+    }
+
+    public function getGainsInternes(): float
+    {
+        $statement = $this->pdo()->query('SELECT SUM(frais_appliques) as total FROM operations WHERE operateur_destination IS NULL OR operateur_destination = \'Interne\'');
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? (float) ($row['total'] ?? 0.0) : 0.0;
+    }
+
+    public function getGainsExternesGroupes(): array
+    {
+        $statement = $this->pdo()->query('SELECT operateur_destination, SUM(frais_appliques) as total FROM operations WHERE operateur_destination IS NOT NULL AND operateur_destination != \'Interne\' GROUP BY operateur_destination ORDER BY operateur_destination ASC');
+        $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
+        return is_array($rows) ? $rows : [];
+    }
+
+    public function getMontantsAEnvoyer(): array
+    {
+        $statement = $this->pdo()->query('SELECT operateur_destination, SUM(montant) as total_montant FROM operations WHERE type_operation = \'transfert\' AND operateur_destination IS NOT NULL AND operateur_destination != \'Interne\' GROUP BY operateur_destination ORDER BY operateur_destination ASC');
+        $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
+        return is_array($rows) ? $rows : [];
     }
 }

@@ -31,27 +31,6 @@ class Admin extends BaseController
         return view('admin/dashboard', $data);
     }
 
-    public function prefixes()
-    {
-        $data['prefixes'] = $this->prefixModel->getAllPrefixes();
-        return view('admin/prefixes', $data); // [Tâche] Créer la vue de listing et le formulaire d'ajout
-    }
-
-    public function addPrefix()
-    {
-        $prefixe = $this->request->getPost('prefixe');
-        if (!empty($prefixe)) {
-            $this->prefixModel->insertPrefix(['prefixe' => $prefixe]);
-        }
-        return redirect()->to(base_url('admin/prefixes'));
-    }
-
-    public function deletePrefix($id)
-    {
-        $this->prefixModel->deletePrefix($id);
-        return redirect()->to(base_url('admin/prefixes'));
-    }
-
     public function frais()
     {
         $data['baremes'] = $this->baremeModel->getBaremesComplets();
@@ -70,12 +49,6 @@ class Admin extends BaseController
         return redirect()->to(base_url('admin/frais'));
     }
 
-    public function gains()
-    {
-        $data['gains'] = $this->operationModel->getSituationGains();
-        return view('admin/gains', $data);
-    }
-
     public function comptes()
     {
         $clients = $this->clientModel->getAllClients();
@@ -88,5 +61,95 @@ class Admin extends BaseController
 
         $data['clients'] = $comptesComplets;
         return view('admin/comptes', $data);
+    }
+
+    public function prefixes()
+    {
+        $prefixeModel = new PrefixeModel();
+        $data = [
+            'title' => 'Configuration des préfixes',
+            'prefixes' => $prefixeModel->getAll(),
+        ];
+        return view('admin/prefixes', $data);
+    }
+
+    public function addPrefix()
+    {
+        $valeur = trim((string) $this->request->getPost('valeur'));
+        $estExterne = (int) $this->request->getPost('est_externe');
+        $nomOperateur = $estExterne === 1 ? trim((string) $this->request->getPost('nom_operateur')) : 'Interne';
+
+        if ($valeur !== '') {
+            $prefixeModel = new PrefixeModel();
+            $prefixeModel->insert($valeur, $estExterne, $nomOperateur);
+
+            if ($estExterne === 1) {
+                $operateurModel = new OperateurModel();
+                $operateurModel->syncOperateurs([$nomOperateur]);
+            }
+        }
+
+        return redirect()->to(site_url('admin/prefixes'));
+    }
+
+    public function deletePrefix($id)
+    {
+        $prefixeModel = new PrefixeModel();
+        $prefixeModel->delete((int) $id);
+        return redirect()->to(site_url('admin/prefixes'));
+    }
+
+    public function commissions()
+    {
+        $prefixeModel = new PrefixeModel();
+        $operateurModel = new OperateurModel();
+
+        $externes = $prefixeModel->getOperateursExternes();
+        $operateurModel->syncOperateurs($externes);
+
+        $data = [
+            'title' => 'Commissions Opérateurs',
+            'commissions' => $operateurModel->getCommissions(),
+        ];
+
+        return view('admin/commissions', $data);
+    }
+
+    public function updateCommissions()
+    {
+        $commissions = $this->request->getPost('commissions');
+        if (is_array($commissions)) {
+            $operateurModel = new OperateurModel();
+            foreach ($commissions as $nom => $pct) {
+                $operateurModel->saveCommission((string) $nom, (float) $pct);
+            }
+            session()->setFlashdata('success', 'Commissions mises à jour avec succès.');
+        }
+        return redirect()->to(site_url('admin/commissions'));
+    }
+
+    public function gains()
+    {
+        $operationModel = new OperationModel();
+
+        $data = [
+            'title' => 'Situation des gains',
+            'gains_internes' => $operationModel->getGainsInternes(),
+            'gains_externes' => $operationModel->getGainsExternesGroupes(),
+        ];
+
+        return view('admin/gains', $data);
+    }
+
+    public function reversements()
+    {
+        $operationModel = new OperationModel();
+
+        $data = [
+            'title' => 'Situation des montants à envoyer',
+            'reversements' => $operationModel->getMontantsAEnvoyer(),
+        ];
+
+        return view('admin/reversements', $data);
     }
 }

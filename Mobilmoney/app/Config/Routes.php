@@ -15,7 +15,10 @@ $routes->group('admin', function ($routes) {
     $routes->get('frais', 'Admin::frais');
     $routes->post('updateFrais', 'Admin::updateFrais');
     $routes->get('gains', 'Admin::gains');
+    $routes->get('reversements', 'Admin::reversements');
     $routes->get('comptes', 'Admin::comptes');
+    $routes->get('commissions', 'Admin::commissions');
+    $routes->post('updateCommissions', 'Admin::updateCommissions');
 });
 
 $routes->add('login', 'Auth::login');
@@ -29,5 +32,12 @@ $routes->group('client', ['filter' => 'session'], static function (RouteCollecti
     $routes->post('retrait', 'Client::retrait');
     $routes->get('transfert', 'Client::transfert');
     $routes->post('transfert', 'Client::transfert');
+    $routes->get('transfertMultiple', 'Client::transfertMultiple');
+    $routes->get('dashboard', 'Client::dashboard');
+    $routes->post('effectuerDepot', 'Client::effectuerDepot');
+    $routes->post('effectuerRetrait', 'Client::effectuerRetrait');
+    $routes->post('effectuerTransfert', 'Client::effectuerTransfert');
+    $routes->post('effectuerTransfertMultiple', 'Client::effectuerTransfertMultiple');
+    $routes->get('checkNumeroOperateur/(:any)', 'Client::checkNumeroOperateur/$1');
     $routes->get('historique', 'Client::historique');
 });
