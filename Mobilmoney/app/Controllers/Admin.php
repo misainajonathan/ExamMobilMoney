@@ -6,6 +6,7 @@ use App\Models\PrefixModel;
 use App\Models\BaremeFraisModel;
 use App\Models\OperationModel;
 use App\Models\ClientModel;
+use App\Models\OperateurModel;
 
 class Admin extends BaseController
 {
@@ -24,9 +25,9 @@ class Admin extends BaseController
 
     public function dashboard()
     {
-        $data['gains'] = $this->operationModel->getSituationGains();
-        $data['total_clients'] = count($this->clientModel->getAllClients());
-        $data['total_prefixes'] = count($this->prefixModel->getAllPrefixes());
+        $data['gains']          = $this->operationModel->getSituationGains();
+        $data['total_clients']  = count($this->clientModel->getAllClients());
+        $data['total_prefixes'] = count($this->prefixModel->getAll() ?? []);
         
         return view('admin/dashboard', $data);
     }
@@ -46,7 +47,7 @@ class Admin extends BaseController
             'frais'       => $this->request->getPost('frais')
         ];
         $this->baremeModel->updateBareme($id, $data);
-        return redirect()->to(base_url('admin/frais'));
+        return redirect()->to(site_url('admin/frais'));
     }
 
     public function comptes()
@@ -65,23 +66,23 @@ class Admin extends BaseController
 
     public function prefixes()
     {
-        $prefixeModel = new PrefixeModel();
+        $prefixModel = new PrefixModel();
         $data = [
-            'title' => 'Configuration des préfixes',
-            'prefixes' => $prefixeModel->getAll(),
+            'title'    => 'Configuration des préfixes',
+            'prefixes' => $prefixModel->getAll(),
         ];
         return view('admin/prefixes', $data);
     }
 
     public function addPrefix()
     {
-        $valeur = trim((string) $this->request->getPost('valeur'));
-        $estExterne = (int) $this->request->getPost('est_externe');
+        $valeur       = trim((string) $this->request->getPost('valeur'));
+        $estExterne   = (int) $this->request->getPost('est_externe');
         $nomOperateur = $estExterne === 1 ? trim((string) $this->request->getPost('nom_operateur')) : 'Interne';
 
         if ($valeur !== '') {
-            $prefixeModel = new PrefixeModel();
-            $prefixeModel->insert($valeur, $estExterne, $nomOperateur);
+            $prefixModel = new PrefixModel();
+            $prefixModel->insert($valeur, $estExterne, $nomOperateur);
 
             if ($estExterne === 1) {
                 $operateurModel = new OperateurModel();
@@ -94,21 +95,21 @@ class Admin extends BaseController
 
     public function deletePrefix($id)
     {
-        $prefixeModel = new PrefixeModel();
-        $prefixeModel->delete((int) $id);
+        $prefixModel = new PrefixModel();
+        $prefixModel->delete((int) $id);
         return redirect()->to(site_url('admin/prefixes'));
     }
 
     public function commissions()
     {
-        $prefixeModel = new PrefixeModel();
+        $prefixModel    = new PrefixModel();
         $operateurModel = new OperateurModel();
 
-        $externes = $prefixeModel->getOperateursExternes();
+        $externes = $prefixModel->getOperateursExternes();
         $operateurModel->syncOperateurs($externes);
 
         $data = [
-            'title' => 'Commissions Opérateurs',
+            'title'       => 'Commissions Opérateurs',
             'commissions' => $operateurModel->getCommissions(),
         ];
 
@@ -133,7 +134,7 @@ class Admin extends BaseController
         $operationModel = new OperationModel();
 
         $data = [
-            'title' => 'Situation des gains',
+            'title'          => 'Situation des gains',
             'gains_internes' => $operationModel->getGainsInternes(),
             'gains_externes' => $operationModel->getGainsExternesGroupes(),
         ];
@@ -146,10 +147,15 @@ class Admin extends BaseController
         $operationModel = new OperationModel();
 
         $data = [
-            'title' => 'Situation des montants à envoyer',
+            'title'        => 'Situation des montants à envoyer',
             'reversements' => $operationModel->getMontantsAEnvoyer(),
         ];
 
         return view('admin/reversements', $data);
+    }
+
+    public function getAllPrefixes()
+    {
+        return $this->prefixModel->getAll();
     }
 }

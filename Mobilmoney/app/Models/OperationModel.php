@@ -25,10 +25,11 @@ class OperationModel
     public function findByClientId(int $clientId): array
     {
         $statement = $this->pdo()->prepare(
-            'SELECT id, montant, frais_appliques, date_operation, id_client_expediteur, id_client_destinataire, type_operation, operateur_destination, inclure_frais_retrait
-             FROM operations
-             WHERE id_client_expediteur = :client_id OR id_client_destinataire = :client_id
-             ORDER BY date_operation DESC, id DESC'
+            'SELECT o.id, o.montant, o.frais_appliques, o.date_operation, o.id_client_expediteur, o.id_client_destinataire, o.id_type_operation, o.operateur_destination, o.inclure_frais_retrait, t.type_operation
+             FROM operation o
+             INNER JOIN type_operation t ON t.id = o.id_type_operation
+             WHERE o.id_client_expediteur = :client_id OR o.id_client_destinataire = :client_id
+             ORDER BY o.date_operation DESC, o.id DESC'
         );
         $statement->execute(['client_id' => $clientId]);
 
@@ -68,10 +69,11 @@ class OperationModel
     public function getOperationsByType(string $typeName): array
     {
         $statement = $this->pdo()->prepare(
-            'SELECT id, montant, frais_appliques, date_operation, id_client_expediteur, id_client_destinataire, type_operation, operateur_destination, inclure_frais_retrait
-             FROM operations
-             WHERE LOWER(TRIM(type_operation)) = LOWER(TRIM(:type_name))
-             ORDER BY date_operation DESC, id DESC'
+            'SELECT o.id, o.montant, o.frais_appliques, o.date_operation, o.id_client_expediteur, o.id_client_destinataire, o.operateur_destination, o.inclure_frais_retrait, t.type_operation
+             FROM operation o
+             INNER JOIN type_operation t ON t.id = o.id_type_operation
+             WHERE LOWER(TRIM(t.type_operation)) = LOWER(TRIM(:type_name))
+             ORDER BY o.date_operation DESC, o.id DESC'
         );
         $statement->execute(['type_name' => $typeName]);
 
@@ -90,9 +92,10 @@ class OperationModel
 
         $placeholders = implode(',', array_fill(0, count($typeNames), '?'));
         $statement = $this->pdo()->prepare(
-            'SELECT COALESCE(SUM(frais_appliques), 0) AS total_fees
-             FROM operations
-             WHERE LOWER(TRIM(type_operation)) IN (' . $placeholders . ')'
+            'SELECT COALESCE(SUM(o.frais_appliques), 0) AS total_fees
+             FROM operation o
+             INNER JOIN type_operation tp ON o.id_type_operation = tp.id
+             WHERE LOWER(TRIM(tp.type_operation)) IN (' . $placeholders . ')'
         );
         $statement->execute(array_map(static fn (string $value): string => strtolower(trim($value)), $typeNames));
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
@@ -102,7 +105,12 @@ class OperationModel
 
     public function getBalanceByClientId(int $clientId): float
     {
-        $statement = $this->pdo()->prepare('SELECT * FROM operations WHERE id_client_expediteur = :id OR id_client_destinataire = :id');
+        $statement = $this->pdo()->prepare(
+            'SELECT o.*, t.type_operation 
+             FROM operation o
+             INNER JOIN type_operation t ON t.id = o.id_type_operation
+             WHERE o.id_client_expediteur = :id OR o.id_client_destinataire = :id'
+        );
         $statement->execute(['id' => $clientId]);
         $operations = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -126,7 +134,10 @@ class OperationModel
 
     public function insertOperation(float $montant, float $frais, int $expediteurId, ?int $destinataireId, string $type, ?string $operateurDestination = null, int $inclureFraisRetrait = 0): bool
     {
-        $statement = $this->pdo()->prepare('INSERT INTO operations (montant, frais_appliques, id_client_expediteur, id_client_destinataire, type_operation, date_operation, operateur_destination, inclure_frais_retrait) VALUES (:montant, :frais, :expediteur, :destinataire, :type, datetime(\'now\', \'localtime\'), :operateur_destination, :inclure_frais_retrait)');
+        $statement = $this->pdo()->prepare(
+            'INSERT INTO operation (montant, frais_appliques, id_client_expediteur, id_client_destinataire, id_type_operation, date_operation, operateur_destination, inclure_frais_retrait) 
+             VALUES (:montant, :frais, :expediteur, :destinataire, (SELECT id FROM type_operation WHERE LOWER(type_operation) = LOWER(:type)), datetime(\'now\', \'localtime\'), :operateur_destination, :inclure_frais_retrait)'
+        );
         return $statement->execute([
             'montant' => $montant,
             'frais' => $frais,
@@ -140,21 +151,28 @@ class OperationModel
 
     public function getGainsInternes(): float
     {
-        $statement = $this->pdo()->query('SELECT SUM(frais_appliques) as total FROM operations WHERE operateur_destination IS NULL OR operateur_destination = \'Interne\'');
+        $statement = $this->pdo()->query('SELECT SUM(frais_appliques) as total FROM operation WHERE operateur_destination IS NULL OR operateur_destination = \'Interne\'');
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
         return $row !== false ? (float) ($row['total'] ?? 0.0) : 0.0;
     }
 
     public function getGainsExternesGroupes(): array
     {
-        $statement = $this->pdo()->query('SELECT operateur_destination, SUM(frais_appliques) as total FROM operations WHERE operateur_destination IS NOT NULL AND operateur_destination != \'Interne\' GROUP BY operateur_destination ORDER BY operateur_destination ASC');
+        $statement = $this->pdo()->query('SELECT operateur_destination, SUM(frais_appliques) as total FROM operation WHERE operateur_destination IS NOT NULL AND operateur_destination != \'Interne\' GROUP BY operateur_destination ORDER BY operateur_destination ASC');
         $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
         return is_array($rows) ? $rows : [];
     }
 
     public function getMontantsAEnvoyer(): array
     {
-        $statement = $this->pdo()->query('SELECT operateur_destination, SUM(montant) as total_montant FROM operations WHERE type_operation = \'transfert\' AND operateur_destination IS NOT NULL AND operateur_destination != \'Interne\' GROUP BY operateur_destination ORDER BY operateur_destination ASC');
+        $statement = $this->pdo()->query(
+            'SELECT o.operateur_destination, SUM(o.montant) as total_montant 
+             FROM operation o
+             INNER JOIN type_operation t ON t.id = o.id_type_operation
+             WHERE t.type_operation = \'transfert\' AND o.operateur_destination IS NOT NULL AND o.operateur_destination != \'Interne\' 
+             GROUP BY o.operateur_destination 
+             ORDER BY o.operateur_destination ASC'
+        );
         $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
         return is_array($rows) ? $rows : [];
     }

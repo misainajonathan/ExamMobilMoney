@@ -61,7 +61,7 @@
                 <h5 class="modal-title fw-bold">Modifier le barème (<span id="modal-service" class="text-capitalize"></span>)</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('admin/updateFrais') ?>" method="post">
+            <form action="<?= site_url('admin/updateFrais') ?>" method="post">
                 <input type="hidden" id="modal-id" name="id">
                 <div class="modal-body">
                     <div class="row g-3">

@@ -4,10 +4,18 @@ namespace App\Models;
 
 class BaremeModel
 {
+    private function pdo(): \PDO
+    {
+        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+
+        return $pdo;
+    }
+
     /**
      * Retourne le montant des frais applicables pour un type d'opération et un montant donnés,
      * en se basant sur les tranches définies dans bareme_frais.
-     * Retourne 0.0 si aucune tranche ne correspond (ex: dépôt, qui n'a pas de barème).
      */
     public function getFrais(string $typeOperation, float $montant): float
     {
@@ -34,9 +42,15 @@ class BaremeModel
     }
 
     /**
+     * Alias réutilisant la méthode getFrais pour éviter la duplication de code.
+     */
+    public function getFraisPourMontant(string $typeOperation, float $montant): float
+    {
+        return $this->getFrais($typeOperation, $montant);
+    }
+
+    /**
      * Vérifie qu'une tranche de frais existe pour ce type d'opération et ce montant.
-     * Permet de distinguer "frais = 0" (tranche trouvée, gratuite) de "aucune tranche
-     * ne couvre ce montant" (montant hors limite, doit être rejeté par le contrôleur).
      */
     public function hasTrancheFor(string $typeOperation, float $montant): bool
     {
@@ -75,20 +89,37 @@ class BaremeModel
         return is_array($rows) ? $rows : [];
     }
 
-    private function pdo(): \PDO
+    /**
+     * Récupère tous les barèmes avec le libellé de leur type d'opération.
+     */
+    public function getBaremesComplets(): array
     {
-        $pdo = new \PDO('sqlite:' . __DIR__ . '/../../writable/database/database.sqlite');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+        $statement = $this->pdo()->query(
+            'SELECT b.id, b.montant_min, b.montant_max, b.frais, t.type_operation
+             FROM bareme_frais b
+             INNER JOIN type_operation t ON t.id = b.id_type_operation
+             ORDER BY t.type_operation ASC, b.montant_min ASC'
+        );
+        $rows = $statement !== false ? $statement->fetchAll(\PDO::FETCH_ASSOC) : [];
 
-        return $pdo;
+        return is_array($rows) ? $rows : [];
     }
 
-    public function getFraisPourMontant(string $typeOperation, float $montant): float
+    /**
+     * Met à jour une tranche de barème.
+     */
+    public function updateBareme(int $id, array $data): bool
     {
-        $statement = $this->pdo()->prepare('SELECT montant_frais FROM baremes_frais WHERE type_operation = :type AND montant_min <= :montant AND montant_max >= :montant LIMIT 1');
-        $statement->execute(['type' => $typeOperation, 'montant' => $montant]);
-        $row = $statement->fetch(\PDO::FETCH_ASSOC);
-        return $row !== false ? (float) $row['montant_frais'] : 0.0;
+        $statement = $this->pdo()->prepare(
+            'UPDATE bareme_frais 
+             SET montant_min = :montant_min, montant_max = :montant_max, frais = :frais 
+             WHERE id = :id'
+        );
+        return $statement->execute([
+            'id'          => $id,
+            'montant_min' => $data['montant_min'],
+            'montant_max' => $data['montant_max'],
+            'frais'       => $data['frais'],
+        ]);
     }
 }

@@ -5,11 +5,17 @@
     <div class="col-12 col-md-6">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h2 class="h5 mb-2">Envoi Multiple</h2>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h5 mb-0">Envoi Multiple</h2>
+                    <a href="<?= site_url('client/transfert') ?>" class="btn btn-sm btn-outline-secondary">&laquo; Envoi simple</a>
+                </div>
                 <p class="text-muted small mb-4">Même opérateur uniquement. Le montant global saisi sera divisé équitablement entre chaque numéro.</p>
 
                 <?php if (session()->getFlashdata('error')): ?>
                     <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('success')): ?>
+                    <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
                 <?php endif; ?>
 
                 <form action="<?= site_url('client/effectuerTransfertMultiple') ?>" method="post">
@@ -23,7 +29,10 @@
                         <input type="number" step="0.01" min="1" name="montant_total" class="form-control" placeholder="Entrez le montant total à diviser" required>
                     </div>
 
-                    <button type="submit" class="btn btn-success w-100">Confirmer l'envoi multiple</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success flex-fill">Confirmer l'envoi multiple</button>
+                        <a href="<?= site_url('client') ?>" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
                 </form>
             </div>
         </div>
