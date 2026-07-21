@@ -17,6 +17,8 @@
         <a class="navbar-brand fw-bold text-primary" href="<?= base_url('client') ?>">
             <i class="bi bi-wallet2 me-2"></i>MobileMoney
         </a>
+
+        <a href="<?= base_url('client/epargne')?>">Épargne</a>
         
         <!-- Info Client & Déconnexion -->
         <div class="d-flex align-items-center ms-auto">
