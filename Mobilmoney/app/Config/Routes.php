@@ -40,4 +40,6 @@ $routes->group('client', ['filter' => 'session'], static function (RouteCollecti
     $routes->post('effectuerTransfertMultiple', 'Client::effectuerTransfertMultiple');
     $routes->get('checkNumeroOperateur/(:any)', 'Client::checkNumeroOperateur/$1');
     $routes->get('historique', 'Client::historique');
+    $routes->get('epargne', 'Client::epargne');
+    $routes->post('epargne', 'Client::epargne');
 });

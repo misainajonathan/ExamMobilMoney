@@ -6,6 +6,8 @@ use App\Models\BaremeModel;
 use App\Models\ClientModel;
 use App\Models\OperationModel;
 use App\Models\PrefixModel;
+use App\Models\EpargneModel;
+use App\Models\OperateurModel;
 
 class Client extends BaseController
 {
@@ -371,9 +373,21 @@ class Client extends BaseController
             return redirect()->to(site_url('client/transfert'));
         }
 
-        // Insertion du transfert unique
+        // Vérification du pourcentage d'épargne du destinataire
+        $epargneModel = new EpargneModel();
+        $pourcentageEpargne = (float) $epargneModel->getPourcentageInteret($idDestinataire);
+
+        $montantReelCompte = $montantAEnvoyer;
+
+        if ($pourcentageEpargne > 0) {
+            $montantPartEpargne = $montantAEnvoyer * ($pourcentageEpargne / 100.0);
+            $montantReelCompte = $montantAEnvoyer - $montantPartEpargne;
+            $epargneModel->createEpargne($idDestinataire, $montantPartEpargne);
+        }
+
+        // Insertion du transfert unique avec le montant restant versé sur le compte principal
         $succes = $operationModel->insertOperation(
-            $montantAEnvoyer,
+            $montantReelCompte,
             $fraisTotauxAppliques,
             $idExpediteur,
             $idDestinataire,
@@ -415,6 +429,7 @@ class Client extends BaseController
         $operationModel = new OperationModel();
         $prefixModel = new PrefixModel();
         $baremeModel = new BaremeModel();
+        $epargneModel = new EpargneModel();
 
         $numerosRaw = trim((string) $this->request->getPost('numeros'));
         $montantTotal = (float) $this->request->getPost('montant_total');
@@ -434,7 +449,6 @@ class Client extends BaseController
         }
 
         // Récupérer l'opérateur de l'expéditeur
-        $expediteur = $clientModel->find($idExpediteur); // Ou obtenir le numéro depuis la session
         $monNumero = session()->get('telephone') ?? '';
         $monPrefixe = substr($monNumero, 0, 3);
         $monOperateur = $prefixModel->getByValeur($monPrefixe);
@@ -463,7 +477,7 @@ class Client extends BaseController
         // 2. Division équitable du montant
         $montantParPersonne = $montantTotal / $nombreDestinataires;
         
-        // Calcul des frais par transfert (Même opérateur = frais standard sans commission externe)
+        // Calcul des frais par transfert
         $fraisParTransfert = $baremeModel->getFraisPourMontant('transfert', $montantParPersonne);
         $totalFraisToutesOperations = $fraisParTransfert * $nombreDestinataires;
         $coutTotalDebite = $montantTotal + $totalFraisToutesOperations;
@@ -484,11 +498,23 @@ class Client extends BaseController
                 $destinataire = $clientModel->getByNumero($num);
             }
 
+            $idDestinataire = (int) $destinataire['id'];
+
+            // Prise en compte de l'épargne du destinataire
+            $pourcentageEpargne = (float) $epargneModel->getPourcentageInteret($idDestinataire);
+            $montantReelCompte = $montantParPersonne;
+
+            if ($pourcentageEpargne > 0) {
+                $montantEpargne = $montantParPersonne * ($pourcentageEpargne / 100.0);
+                $montantReelCompte = $montantParPersonne - $montantEpargne;
+                $epargneModel->createEpargne($idDestinataire, $montantEpargne);
+            }
+
             $inserted = $operationModel->insertOperation(
-                $montantParPersonne,
+                $montantReelCompte,
                 $fraisParTransfert,
                 $idExpediteur,
-                (int)$destinataire['id'],
+                $idDestinataire,
                 'transfert',
                 $monOperateur['nom_operateur'],
                 0
@@ -506,5 +532,37 @@ class Client extends BaseController
         }
 
         return redirect()->to(site_url('client/dashboard'));
+    }
+
+    public function epargne()
+    {
+        $clientId = $this->currentClientId();
+        if ($clientId === null) {
+            return redirect()->to(site_url('login'));
+        }
+
+        $clientModel = new ClientModel();
+        $soldeEpargne = $clientModel->getEpargne($clientId);
+
+        $data = [
+            'title' => 'Épargne',
+            'solde_epargne' => $soldeEpargne,
+            'success' => session()->getFlashdata('success'),
+            'error' => session()->getFlashdata('error'),
+        ];
+
+        return view('client/epargne', $data);
+    }
+
+    public function effectuerEpargne()
+    {
+        $clientId = $this->currentClientId();
+        if ($clientId == null) {
+            return redirect()->to(site_url('login'));
+        }
+        $pourcentage = (float) $this->request->getPost('pourcentage_interet');
+
+        $EpargneModel = new EpargneModel();
+        $EpargneModel->createEpargne($clientId, $pourcentage);
     }
 }

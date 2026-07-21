@@ -77,4 +77,10 @@ class ClientModel
 
         return $pdo;
     }
+
+    public function getEpargne(int $clientId): ?array
+    {
+        $epargneModel = new EpargneModel();
+        return $epargneModel->getEpargneByClientId($clientId);
+    }
 }
