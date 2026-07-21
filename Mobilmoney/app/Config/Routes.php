@@ -33,7 +33,7 @@ $routes->group('client', ['filter' => 'session'], static function (RouteCollecti
     $routes->get('transfert', 'Client::transfert');
     $routes->post('transfert', 'Client::transfert');
     $routes->get('transfertMultiple', 'Client::transfertMultiple');
-    $routes->get('dashboard', 'Client::dashboard');
+    $routes->get('dashboard', 'Client::index');
     $routes->post('effectuerDepot', 'Client::effectuerDepot');
     $routes->post('effectuerRetrait', 'Client::effectuerRetrait');
     $routes->post('effectuerTransfert', 'Client::effectuerTransfert');

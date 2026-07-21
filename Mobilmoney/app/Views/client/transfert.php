@@ -5,7 +5,10 @@
     <div class="col-12 col-md-6">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h2 class="h5 mb-4">Effectuer un transfert de fonds</h2>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h5 mb-0">Transfert de fonds</h2>
+                    <a href="<?= site_url('client/transfertMultiple') ?>" class="btn btn-sm btn-outline-primary">Passer en envoi multiple &raquo;</a>
+                </div>
 
                 <?php if (session()->getFlashdata('error')): ?>
                     <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
@@ -33,7 +36,10 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Confirmer le transfert</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-fill">Confirmer le transfert</button>
+                        <a href="<?= site_url('client') ?>" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
                 </form>
             </div>
         </div>

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\BaremeModel;
 use App\Models\ClientModel;
 use App\Models\OperationModel;
+use App\Models\PrefixModel;
 
 class Client extends BaseController
 {
@@ -266,8 +267,8 @@ class Client extends BaseController
 
     public function checkNumeroOperateur($prefixe)
     {
-        $prefixeModel = new PrefixeModel();
-        $p = $prefixeModel->getByValeur((string) $prefixe);
+        $prefixModel = new PrefixModel();
+        $p = $prefixModel->getByValeur((string) $prefixe);
 
         if ($p !== null) {
             return $this->response->setJSON([
@@ -315,8 +316,8 @@ class Client extends BaseController
 
         // Détection de l'opérateur de destination
         $prefixe = substr($numeroDestinataire, 0, 3);
-        $prefixeModel = new PrefixeModel();
-        $p = $prefixeModel->getByValeur($prefixe);
+        $prefixModel = new PrefixModel();
+        $p = $prefixModel->getByValeur($prefixe);
 
         if ($p === null) {
             $session->setFlashdata('error', 'Opérateur destinataire non supporté.');
@@ -412,7 +413,7 @@ class Client extends BaseController
         $idExpediteur = (int) $session->get('client_id');
         $clientModel = new ClientModel();
         $operationModel = new OperationModel();
-        $prefixeModel = new PrefixeModel();
+        $prefixModel = new PrefixModel();
         $baremeModel = new BaremeModel();
 
         $numerosRaw = trim((string) $this->request->getPost('numeros'));
@@ -436,7 +437,7 @@ class Client extends BaseController
         $expediteur = $clientModel->find($idExpediteur); // Ou obtenir le numéro depuis la session
         $monNumero = session()->get('telephone') ?? '';
         $monPrefixe = substr($monNumero, 0, 3);
-        $monOperateur = $prefixeModel->getByValeur($monPrefixe);
+        $monOperateur = $prefixModel->getByValeur($monPrefixe);
 
         if ($monOperateur === null) {
             $session->setFlashdata('error', 'Impossible de détecter votre opérateur.');
@@ -451,7 +452,7 @@ class Client extends BaseController
             }
 
             $prefixeDest = substr($num, 0, 3);
-            $opDest = $prefixeModel->getByValeur($prefixeDest);
+            $opDest = $prefixModel->getByValeur($prefixeDest);
 
             if ($opDest === null || $opDest['nom_operateur'] !== $monOperateur['nom_operateur'] || (int)$opDest['est_externe'] === 1) {
                 $session->setFlashdata('error', "Le numéro $num n'appartient pas au même opérateur que vous.");

@@ -24,6 +24,16 @@ class ClientModel
         return $client === false ? null : $client;
     }
 
+    public function getByNumero(string $telephone): ?array
+    {
+        return $this->findByTelephone($telephone);
+    }
+
+    public function createClient(string $telephone): bool
+    {
+        return (bool) $this->insert(['telephone' => $telephone]);
+    }
+
     public function insert(array $data, bool $returnInsertId = false): int|bool
     {
         $pdo = $this->pdo();

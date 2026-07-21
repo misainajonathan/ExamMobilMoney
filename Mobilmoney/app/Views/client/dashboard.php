@@ -16,6 +16,7 @@
             <a href="<?= site_url('client/depot') ?>" class="btn btn-success">Faire un dépôt</a>
             <a href="<?= site_url('client/retrait') ?>" class="btn btn-warning">Faire un retrait</a>
             <a href="<?= site_url('client/transfert') ?>" class="btn btn-info text-white">Faire un transfert</a>
+            <a href="<?= site_url('client/transfertMultiple') ?>" class="btn btn-outline-info">Faire un transfert multiple</a>
             <a href="<?= site_url('client/historique') ?>" class="btn btn-outline-secondary">Voir l'historique complet</a>
         </div>
     </div>
