@@ -122,4 +122,15 @@ class BaremeModel
             'frais'       => $data['frais'],
         ]);
     }
+
+        // public function promotion($montant){
+        // $est_promo = false;
+        // $pct = 0;
+        // $fraisFinaux = $this->getFraisFinaux($montant);
+        // $frais = $fraisFinaux;
+        // if(!$estExterne){
+        //     $pct = $a;
+        //     $frais = $fraisFinaux * (1-($pct/100));
+        // }        
+    //
 }

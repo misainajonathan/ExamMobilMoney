@@ -371,6 +371,15 @@ class Client extends BaseController
             return redirect()->to(site_url('client/transfert'));
         }
 
+        $est_promo = false;
+        $pct = 0;
+        $fraisFinaux = $this->$baremeModel->getFrais($montantSaisis, 'transfert');
+        $frais = $fraisFinaux;
+        if(!$estExterne){
+            $pct = $a;
+            $frais = $fraisFinaux * (1-($pct/100));
+        }   
+
         // Insertion du transfert unique
         $succes = $operationModel->insertOperation(
             $montantAEnvoyer,
@@ -507,4 +516,6 @@ class Client extends BaseController
 
         return redirect()->to(site_url('client/dashboard'));
     }
+
+
 }
